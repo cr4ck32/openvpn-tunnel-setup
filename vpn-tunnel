@@ -11,20 +11,14 @@ sshserver=servi
 # Options fed to openvpn
 opt_compression='--comp-lzo adaptive'
 
+# Traffic of processes of which groups should be tunneled through the
+# VPN
+groups=vpntunneled
+
 # Traffic of processes of which uids should be tunneled through the
-# VPN (XX: I suppose this could be changed to group based routing)
-case "`hostname`" in
-    novo)
-    owners="1004 1010 2007"
-    # chrisekiga, [X in chroot], chrisirc
-    ;;
-    tie)
-    owners="chris chrissbx christwinkle chrisirc chrisskype"
-    ;;
-    *)
-    echo "missing owners setting for host '`hostname`' in $0"
-    exit 1
-esac
+# VPN (you would usually add those to one of the above groups instead,
+# though)
+owners=""
 
 # (Static) network configuration for the VPN
 network=192.168.200
@@ -91,6 +85,31 @@ masq_code() {
     masq_code_ "$1" "$ip_in_client"
 }
 
+iptables_AD_what_ids () {
+    local AD="$1"
+    local what="$2"
+    local ids="$3"
+    for owner in $ids; do
+	# make all packets of that owner go through the VPN:
+	# (matching ip calls below, "table 1")
+	iptables -t mangle "$AD" OUTPUT -m owner --"$what"-owner $owner \
+	    -j MARK --set-mark 0x1
+	
+	# make their source ip that of the local end of the VPN:
+	iptables -t nat "$AD" POSTROUTING -m owner --"$what"-owner $owner -p udp \
+	    -j SNAT --to-source "$ip_in_client"
+	iptables -t nat "$AD" POSTROUTING -m owner --"$what"-owner $owner -p tcp \
+	    -j SNAT --to-source "$ip_in_client"
+	
+	# NAT DNS so that it won't go to the dns server of the local net,
+	# but one in the remote net:
+	iptables -t nat "$AD" OUTPUT -p udp -m owner --"$what"-owner $owner --dport 53 \
+	    -j DNAT --to-destination "$serversidednsserver"
+	iptables -t nat "$AD" OUTPUT -p tcp -m owner --"$what"-owner $owner --dport 53 \
+	    -j DNAT --to-destination "$serversidednsserver"
+    done
+}
+
 start () {
     #set -x
     init
@@ -131,26 +150,9 @@ start () {
     # ** Routing on the client **
     route add -net $network.0 netmask 255.255.255.0 gw $ip_in_server
 
-    for owner in $owners; do
-	# make all packets of that owner go through the VPN:
-	# (matching ip calls below, "table 1")
-	iptables -t mangle -A OUTPUT -m owner --uid-owner $owner \
-	    -j MARK --set-mark 0x1
-	
-	# make their source ip that of the local end of the VPN:
-	iptables -t nat -A POSTROUTING -m owner --uid-owner $owner -p udp \
-	    -j SNAT --to-source "$ip_in_client"
-	iptables -t nat -A POSTROUTING -m owner --uid-owner $owner -p tcp \
-	    -j SNAT --to-source "$ip_in_client"
-	
-	# NAT DNS so that it won't go to the dns server of the local net,
-	# but one in the remote net:
-	iptables -t nat -A OUTPUT -p udp -m owner --uid-owner $owner --dport 53 \
-	    -j DNAT --to-destination "$serversidednsserver"
-	iptables -t nat -A OUTPUT -p tcp -m owner --uid-owner $owner --dport 53 \
-	    -j DNAT --to-destination "$serversidednsserver"
-    done
-    
+    iptables_AD_what_ids -A gid "$groups"
+    iptables_AD_what_ids -A uid "$owners"
+
     ip route add default via "$ip_in_server" table 1
     ip rule add fwmark 1 lookup 1
     # ! don't forget to add cleanup in stop procedure for things you add here !
@@ -189,18 +191,9 @@ stop () {
 	init
     fi
 
-    for owner in $owners; do
-	iptables -t mangle -D OUTPUT -m owner --uid-owner $owner \
-	    -j MARK --set-mark 0x1 || true
-	iptables -t nat -D POSTROUTING -m owner --uid-owner $owner -p udp \
-	    -j SNAT --to-source "$ip_in_client" || true
-	iptables -t nat -D POSTROUTING -m owner --uid-owner $owner -p tcp \
-	    -j SNAT --to-source "$ip_in_client" || true
-	iptables -t nat -D OUTPUT -p udp -m owner --uid-owner $owner --dport 53 \
-	    -j DNAT --to-destination "$serversidednsserver" || true
-	iptables -t nat -D OUTPUT -p tcp -m owner --uid-owner $owner --dport 53 \
-	    -j DNAT --to-destination "$serversidednsserver" || true
-    done
+    iptables_AD_what_ids -D gid "$groups" || true
+    iptables_AD_what_ids -D uid "$owners" || true
+
     ip rule del fwmark 1 lookup 1 || true
     
     # XXX Do something better?
