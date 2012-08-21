@@ -1,6 +1,8 @@
-RThis is for easy and automatic setup of a VPN using openvpn in the
+This is for easy and automatic setup of a VPN using openvpn in the
 case where you've got root ssh access to the server and only have one
-client. It uses ssh for authentication and configuration.
+client. It uses preshared keys, and ssh is used to share the keys, get
+the necessary serverside information and set up and tear down the
+openvpn daemon.
 
 LIMITATIONS:
 
