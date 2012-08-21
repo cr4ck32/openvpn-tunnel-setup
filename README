@@ -68,3 +68,8 @@ BUGS:
   * Tunnel setup/teardown is a bit slow because of the many remote ssh
     calls.
 
+  * DNS requests are always redirected to the same single DNS server
+    (the first one configured in /etc/resolv.conf on the server); if it
+    goes down, the retries that applications do with different servers
+    will go to the same dead server.
+
