@@ -1,4 +1,4 @@
-This is for easy and automatic setup of a VPN using openvpn in the
+RThis is for easy and automatic setup of a VPN using openvpn in the
 case where you've got root ssh access to the server and only have one
 client. It uses ssh for authentication and configuration.
 
@@ -46,15 +46,19 @@ of the client being offline.
 
 BUGS:
 
-Relatively often, I'm getting sudden periods where the UDP packets
-from openvpn aren't reaching the server, as can be confirmed by
-running tcpdump on the server. This then sorts itself out all by
-itself after 10-15 minutes or after the client going to sleep some
-time. It seems to usually happen soon after restarting the tunnel,
-thereafter the tunnel seems to be more stable; or maybe it's after
-periods of heavy traffic. I haven't figured out yet whether this is
-simply my ISP dropping them during these periods or whether there is
-something else going on. Tcpdump reports the packets as leaving the
-client through the interface towards the ISP, so that would hint that
-it's the ISP, but maybe they are killed by the kernel after tcpdump
-sees them?
+  * Relatively often, I'm getting sudden periods where the UDP packets
+    from openvpn aren't reaching the server, as can be confirmed by
+    running tcpdump on the server. This then sorts itself out all by
+    itself after 10-15 minutes or after the client going to sleep some
+    time. It seems to usually happen soon after restarting the tunnel,
+    thereafter the tunnel seems to be more stable; or maybe it's after
+    periods of heavy traffic. I haven't figured out yet whether this
+    is simply my ISP dropping them during these periods or whether
+    there is something else going on. Tcpdump reports the packets as
+    leaving the client through the interface towards the ISP, so that
+    would hint that it's the ISP, but maybe they are killed by the
+    kernel after tcpdump sees them?
+
+  * Tunnel setup/teardown is a bit slow because of the many remote ssh
+    calls.
+
