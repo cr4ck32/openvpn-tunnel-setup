@@ -32,7 +32,11 @@ Install the dependencies on both client and server:
 
  * apt-get install openvpn
 
-On client:
+On client only:
+
+ * cd /opt/chj
+   git clone https://github.com/pflanze/openvpn-tunnel-setup.git
+   # add to PATH if you like
  * groupadd vpntunneled
  * for user in $users_you_want_to_be_tunneled
    do adduser $user vpntunneled; done
