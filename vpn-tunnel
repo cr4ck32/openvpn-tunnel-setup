@@ -58,12 +58,39 @@ else
 fi
 
 
+# doing/done messages:
+prev_done="-"
+
+printdone () {
+    if [ "$prev_done" != "-" ]; then
+	eval "echo $prev_done."
+    fi
+}
+
+=== () {
+    local msg="$1"
+    local done="${2-done}"
+
+    printdone
+    prev_done="$done"
+    echo -en "* $msg: "
+}
+
+===. () {
+    printdone
+    prev_done="-"
+    echo OK.
+}
+
 init () {
+    === "getting IP of client as visible to server" '"$client"'
     client=${client-"$(ssh "$sshserver" \
 	'echo "$SSH_CONNECTION"'|perl -wne 'm/^((?:\d{1,3}\.){3}\d{1,3})\s/ or die; print $1')"}
 
+    === "getting server-side IP of DNS server" '"$serversidednsserver"'
     serversidednsserver=${serversidednsserver-"$(ssh "$sshserver" \
 	'grep ^nameserver /etc/resolv.conf|awk '\''{print $2}'\''|head -1')"}
+
 }
 
 
@@ -114,26 +141,30 @@ start () {
     #set -x
     init
     
-    keyfile_client=`$tempfilecmd`
-
-    openvpn --genkey --secret "$keyfile_client"
-
-    keyfile_server=$(ssh root@"$sshserver" "$tempfilecmd")
-
-    scp -p "$keyfile_client" root@"$sshserver":"$keyfile_server"
-    
     modprobe tun
     # not sure whether these are needed?:
     modprobe nf_conntrack_sip
     modprobe nf_nat_sip
     
     echo 1 > /proc/sys/net/ipv4/ip_forward
+    
+    keyfile_client=`$tempfilecmd`
 
+    === "generating key"
+    openvpn --genkey --secret "$keyfile_client"
+
+    === "copying key to server\n" -
+    keyfile_server=$(ssh root@"$sshserver" "$tempfilecmd")
+
+    scp -p "$keyfile_client" root@"$sshserver":"$keyfile_server"
+    
+    === "starting local openvpn instance" -
     daemonize --out "$logfile" --bg --no-nice \
 	openvpn $opt_compression --remote "$fqserver" --dev $dev \
 	--ifconfig "$ip_in_client" "$ip_in_server" $verb \
 	--secret "$keyfile_client" $usergroup
-    
+
+    === "starting remote openvpn instance" -
     ssh "$sshserver" 'set -eu
         modprobe tun
 	modprobe nf_conntrack_sip
@@ -147,7 +178,8 @@ start () {
 	'
 	##todo correct quoting.well escaping.
 
-    # ** Routing on the client **
+    === "setting up routing on the client"
+    
     route add -net $network.0 netmask 255.255.255.0 gw $ip_in_server
 
     iptables_AD_what_ids -A gid "$groups"
@@ -157,7 +189,7 @@ start () {
     ip rule add fwmark 1 lookup 1
     # ! don't forget to add cleanup in stop procedure for things you add here !
     
-    # ** Cleanup **
+    === "wait until started"
 
     # remove keyfiles quickly (they won't be accessible by the openvpn
     # binary after chroot anyway)
@@ -173,10 +205,12 @@ start () {
 	fi
     done
     if [ "$ok" -eq 1 ]; then
+
+	=== cleanup
 	rm -f "$keyfile_client"
 	ssh "$sshserver" "rm -f \"$keyfile_server\""
 
-	echo OK.
+	===.
     else
 	false
     fi
@@ -191,18 +225,21 @@ stop () {
 	init
     fi
 
+    === "remove iptables routing entries"
     iptables_AD_what_ids -D gid "$groups" || true
     iptables_AD_what_ids -D uid "$owners" || true
 
     ip rule del fwmark 1 lookup 1 || true
-    
+
+    === "killall openvpn on client"
     # XXX Do something better?
     killall openvpn || true
+    === "killall openvpn on server"
     ssh "$sshserver" 'killall openvpn || true;
     	'"$(masq_code -D)"' || true
 	' || true
 
-    echo OK.
+    ===.
 }
 
 
