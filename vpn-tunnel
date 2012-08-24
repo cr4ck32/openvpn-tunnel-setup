@@ -11,13 +11,13 @@ sshserver=servi
 # Options fed to openvpn
 opt_compression='--comp-lzo adaptive'
 
-# Traffic of processes of which groups should be tunneled through the
-# VPN
+# Group names or ids of processes whose traffic should be tunneled
+# through the VPN
 groups=vpntunneled
 
-# Traffic of processes of which uids should be tunneled through the
-# VPN (you would usually add those to one of the above groups instead,
-# though)
+# User names or ids of processes whose traffic should be tunneled
+# through the VPN (you would usually add those to one of the above
+# groups instead, though)
 owners=""
 
 # (Static) network configuration for the VPN
