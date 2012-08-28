@@ -49,6 +49,10 @@ tempfilecmd="tempfile -d /lib/init/rw/"
 
 # ------------------------------------------------------------
 
+quote () {
+    printf '%q' "$1"
+}
+
 # If sshserver is just a hostname, resolve it by looking it up in the
 # ssh client configuration
 if echo "$sshserver" | grep -F . >/dev/null; then
@@ -170,13 +174,12 @@ start () {
 	modprobe nf_conntrack_sip
 	modprobe nf_nat_sip
         echo 1 > /proc/sys/net/ipv4/ip_forward
-        '"daemonize --out \"$logfile\" --bg --no-nice \\
-	openvpn $opt_compression --remote \"$client\" --float --dev $dev \\
-	--ifconfig \"$ip_in_server\" \"$ip_in_client\" $verb \\
-	--secret \"$keyfile_server\" $usergroup"'
+        '"daemonize --out $(quote "$logfile") --bg --no-nice \\
+	openvpn $opt_compression --remote $(quote "$client") --float --dev $dev \\
+	--ifconfig $(quote "$ip_in_server") $(quote "$ip_in_client") $verb \\
+	--secret $(quote "$keyfile_server") $usergroup"'
 	'"$(masq_code -A)"'
 	'
-	##todo correct quoting.well escaping.
 
     === "setting up routing on the client"
     
