@@ -49,10 +49,6 @@ tempfilecmd="tempfile -d /lib/init/rw/"
 
 # ------------------------------------------------------------
 
-quote () {
-    printf '%q' "$1"
-}
-
 # If sshserver is just a hostname, resolve it by looking it up in the
 # ssh client configuration
 if echo "$sshserver" | grep -F . >/dev/null; then
@@ -60,6 +56,32 @@ if echo "$sshserver" | grep -F . >/dev/null; then
 else
     fqserver="`ssh_config-ref "$sshserver" hostname`"
 fi
+
+quote () {
+    printf '%q' "$1"
+}
+
+# resolve groups here because iptables --gid-owner is broken
+
+users_in_group () {
+    tmp=`tempfile`
+    if grep -E ^"$(quote "$1")": /etc/group > "$tmp"; then
+	awk --field-separator : '{print $4}' < "$tmp" | sed 's/,/\n/g'
+    fi
+    rm "$tmp"
+}
+
+allowners=$(
+    export LANG=C
+    {
+	for g in $groups; do
+	    users_in_group "$g"
+	done
+	for u in $owners; do
+	    echo "$u"
+	done
+    } | sort -u
+)
 
 
 # doing/done messages:
@@ -185,8 +207,7 @@ start () {
     
     route add -net $network.0 netmask 255.255.255.0 gw $ip_in_server
 
-    iptables_AD_what_ids -A gid "$groups"
-    iptables_AD_what_ids -A uid "$owners"
+    iptables_AD_what_ids -A uid "$allowners"
 
     ip route add default via "$ip_in_server" table 1
     ip rule add fwmark 1 lookup 1
@@ -229,8 +250,7 @@ stop () {
     fi
 
     === "remove iptables routing entries"
-    iptables_AD_what_ids -D gid "$groups" || true
-    iptables_AD_what_ids -D uid "$owners" || true
+    iptables_AD_what_ids -D uid "$allowners" || true
 
     ip rule del fwmark 1 lookup 1 || true
 
