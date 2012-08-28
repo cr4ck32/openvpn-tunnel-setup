@@ -1,10 +1,4 @@
-* could use daemonize --stop, *iff* I don't look up and feed it the
-  client ip anymore; which would be fine since it would save the ssh
-  call for that lookup. But, maybe there are some circumstances where
-  the client ip is really needed? (server NATed instead of the client)?
-  Also, to differentiate daemonize invocations for multiple clients,
-  it would still need some id for the client (hostname? But how to include
-  in daemonize, add a flag to the latter?). But, even then, there's more
+* could use daemonize --stop. But there's more
   to it for multi-client ability: which tun device to use, for example?
 
 * register which users have been added to iptables and just remove those
