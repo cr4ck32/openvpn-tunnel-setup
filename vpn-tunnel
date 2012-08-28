@@ -122,15 +122,20 @@ usage () {
     exit 1
 }
 
-# openvpn invocations ('returning' bash code):
+# openvpn invocations ('returning' bash code): (These can be fed a
+# fake value that will override variables that are not known in stop
+# invocations, for the purpose of generating a stable hash value for
+# daemonize.)
 
 openvpn_invocation_client () {
+    local keyfile_client="${1-"$keyfile_client"}"
     echo "openvpn $opt_compression --remote "$fqserver" --dev $dev " \
 	"--ifconfig $(quote "$ip_in_client") $(quote "$ip_in_server") $verb " \
 	"--secret $(quote "$keyfile_client") $usergroup"
 }
 
 openvpn_invocation_server () {
+    local keyfile_server="${1-"$keyfile_server"}"
     echo "openvpn $opt_compression --float --dev $dev " \
 	"--ifconfig $(quote "$ip_in_server") $(quote "$ip_in_client") $verb " \
 	"--secret $(quote "$keyfile_server") $usergroup"
@@ -196,7 +201,9 @@ start () {
     
     === "starting local openvpn instance" -
     # (amazingly, set -e is in effect within the eval)
-    eval "daemonize --out $(quote "$logfile") --bg --no-nice $(openvpn_invocation_client)"
+    eval "daemonize --out $(quote "$logfile") --bg --no-nice \\
+        --hash-input $(quote "$(openvpn_invocation_client stable)") \\
+        $(openvpn_invocation_client)"
 
     === "starting remote openvpn instance" -
     ssh "$sshserver" 'set -eu
@@ -204,7 +211,9 @@ start () {
 	modprobe nf_conntrack_sip
 	modprobe nf_nat_sip
         echo 1 > /proc/sys/net/ipv4/ip_forward
-        '"daemonize --out $(quote "$logfile") --bg --no-nice $(openvpn_invocation_server)"'
+        '"daemonize --out $(quote "$logfile") --bg --no-nice \\
+	--hash-input $(quote "$(openvpn_invocation_server stable)") \\
+	$(openvpn_invocation_server)"'
 	'"$(masq_code -A)"'
 	'
 
@@ -260,11 +269,15 @@ stop () {
     ip rule del fwmark 1 lookup 1 || true
 
     === "stop openvpn on client"
-    eval "daemonize --stop $(openvpn_invocation_client)" || true
+    eval "daemonize --stop \\
+        --hash-input $(quote "$(openvpn_invocation_client stable)") \\
+	fakecmd" || true
 
     === "stop openvpn on server"
     ssh "$sshserver" 'set -eu
-        '"daemonize --stop $(openvpn_invocation_server) || true"'
+        '"daemonize --stop \\
+	--hash-input $(quote "$(openvpn_invocation_server stable)") \\
+	fakecmd || true"'
     	'"$(masq_code -D)"' || true
 	' || true
 
