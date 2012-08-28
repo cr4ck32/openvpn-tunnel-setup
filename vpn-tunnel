@@ -263,7 +263,8 @@ stop () {
     eval "daemonize --stop $(openvpn_invocation_client)" || true
 
     === "stop openvpn on server"
-    ssh "$sshserver" "daemonize --stop $(openvpn_invocation_server) || true"'
+    ssh "$sshserver" 'set -eu
+        '"daemonize --stop $(openvpn_invocation_server) || true"'
     	'"$(masq_code -D)"' || true
 	' || true
 
