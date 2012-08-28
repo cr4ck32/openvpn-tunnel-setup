@@ -8,9 +8,9 @@ LIMITATIONS:
 
  - only tested on Debian
 
- - it currently only works for one client per server, as it simply
-   uses 'killall' to tear down the openvpn instance on the server, and
-   the IPs used for the VPN are configured statically in the script.
+ - it currently probably only works for one client per server:
+   the tunX interface name and IPs used for the VPN are configured
+   statically in the script.
 
 DEPENDENCIES:
 
