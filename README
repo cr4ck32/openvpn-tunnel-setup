@@ -73,3 +73,10 @@ BUGS:
     goes down, the retries that applications do with different servers
     will go to the same dead server.
 
+  * Due to an apparent bug in iptables in handling --gid-owner, the
+    script looks up groups when starting; for this reason, adding
+    users to the vpntunneled group only has effect on the next
+    'vpn-tunnel start' invocation (also, if a user is removed from a
+    group after start but before stop, then the stop action won't
+    remove that user from the iptables entries).
+
