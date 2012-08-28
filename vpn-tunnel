@@ -164,9 +164,7 @@ iptables_AD_what_ids () {
 	    -j MARK --set-mark 0x1
 	
 	# make their source ip that of the local end of the VPN:
-	iptables -t nat "$AD" POSTROUTING -m owner --"$what"-owner $owner -p udp \
-	    -j SNAT --to-source "$ip_in_client"
-	iptables -t nat "$AD" POSTROUTING -m owner --"$what"-owner $owner -p tcp \
+	iptables -t nat "$AD" POSTROUTING -m owner --"$what"-owner $owner \
 	    -j SNAT --to-source "$ip_in_client"
 	
 	# NAT DNS so that it won't go to the dns server of the local net,
