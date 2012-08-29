@@ -157,6 +157,8 @@ iptables_AD_what_ids () {
     local AD="$1"
     local what="$2"
     local ids="$3"
+    iptables -t mangle "$AD" OUTPUT -s "$ip_in_client" \
+	-j MARK --set-mark 0x1
     for owner in $ids; do
 	# make all packets of that owner go through the VPN:
 	# (matching ip calls below, "table 1")
