@@ -195,8 +195,23 @@ start () {
     iptables_AD -A
 
     # now that the exceptions are activated, add new default route via
-    # VPN
-    ip route add default via "$ip_server"
+    # VPN; have to retry until openvpn actually created the interface
+    result=`tempfile`
+    i=10
+    ok=0
+    while [ "$i" -gt 0 ]; do
+	if ip route add default via "$ip_server" > "$result" 2>&1; then
+	    ok=1
+	    i=0
+	else
+	    sleep 1
+	    i=$(( $i - 1 ))
+	fi
+    done
+    if [ "$ok" -eq 0 ]; then
+	cat "$result"
+	false
+    fi
     
     === "wait until started"
 
