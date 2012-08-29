@@ -11,15 +11,6 @@ sshserver=servi
 # Options fed to openvpn
 openvpn_compression='--comp-lzo adaptive'
 
-# Group names or ids of processes whose traffic should be tunneled
-# through the VPN
-groups=vpntunneled
-
-# User names or ids of processes whose traffic should be tunneled
-# through the VPN (you would usually add those to one of the above
-# groups instead, though)
-owners=""
-
 # (Static) network configuration for the VPN
 network=192.168.200
 ip_client=$network.5
@@ -57,28 +48,6 @@ fi
 quote () {
     printf '%q' "$1"
 }
-
-# resolve groups here because iptables --gid-owner is broken
-
-users_in_group () {
-    tmp=`tempfile`
-    if grep -E ^"$(quote "$1")": /etc/group > "$tmp"; then
-	awk --field-separator : '{print $4}' < "$tmp" | sed 's/,/\n/g'
-    fi
-    rm "$tmp"
-}
-
-allowners=$(
-    export LANG=C
-    {
-	for g in $groups; do
-	    users_in_group "$g"
-	done
-	for u in $owners; do
-	    echo "$u"
-	done
-    } | sort -u
-)
 
 
 # doing/done messages:
@@ -150,28 +119,22 @@ masq_code() {
     masq_code_ "$1" "$ip_client"
 }
 
-iptables_AD_what_ids () {
+
+# rules matching exceptional traffic that should *not* go through the
+# VPN:
+iptables_AD () {
     local AD="$1"
-    local what="$2"
-    local ids="$3"
-    for owner in $ids; do
-	# make all packets of that owner go through the VPN:
-	# (matching ip calls below, "table 1")
-	iptables -t mangle "$AD" OUTPUT -m owner --"$what"-owner $owner \
-	    -j MARK --set-mark 0x1
-	
-	# make their source ip that of the local end of the VPN:
-	iptables -t nat "$AD" POSTROUTING -m owner --"$what"-owner $owner \
-	    -j SNAT --to-source "$ip_client"
-	
-	# NAT DNS so that it won't go to the dns server of the local net,
-	# but one in the remote net:
-	iptables -t nat "$AD" OUTPUT -p udp -m owner --"$what"-owner $owner --dport 53 \
-	    -j DNAT --to-destination "$serversidednsserver"
-	iptables -t nat "$AD" OUTPUT -p tcp -m owner --"$what"-owner $owner --dport 53 \
-	    -j DNAT --to-destination "$serversidednsserver"
-    done
+    # DHCP
+    iptables -t mangle "$AD" OUTPUT -p udp --dport 67 \
+	-j MARK --set-mark 0x1
+    # XX: ssh, so that tearing down the tunnel will easily work, for
+    # now
+    iptables -t mangle "$AD" OUTPUT -p tcp --dport 22 \
+	-j MARK --set-mark 0x1
 }
+
+#çXXX don't forget DNS  copy  of resolv.conf.
+
 
 start () {
     #set -x
@@ -213,14 +176,20 @@ start () {
 	'
 
     === "setting up routing on the client"
-    
-    route add -net "$network.0" netmask 255.255.255.0 gw "$ip_server"
-
-    iptables_AD_what_ids -A uid "$allowners"
-
-    ip route add default via "$ip_server" table 1
-    ip rule add fwmark 1 lookup 1
     # ! don't forget to add cleanup in stop procedure for things you add here !
+
+    # remove previous default route and replace it with a default
+    # route through the VPN
+    dfltroute=`ip route list | grep ^default`
+    ip route del $dfltroute
+    ip route add default via "$ip_server"
+
+    # but re-add previous default route for the exceptional traffic
+    # marked by iptables_AD
+    ip route add $dfltroute table 1
+    ip rule add fwmark 1 lookup 1
+
+    iptables_AD -A
     
     === "wait until started"
 
@@ -259,9 +228,16 @@ stop () {
     fi
 
     === "remove iptables routing entries"
-    iptables_AD_what_ids -D uid "$allowners" || true
 
+    iptables_AD -D || true
     ip rule del fwmark 1 lookup 1 || true
+
+    if dfltroute_modded=`ip route list | egrep '^default.*table 1\b'`; then
+	ip route del $dfltroute_modded
+	dfltroute_orig=`echo "$dfltroute_modded" | sed 's/table 1//'`
+	ip route add $dfltroute_orig
+    fi
+
 
     === "stop openvpn on client"
     eval "daemonize --stop \\
