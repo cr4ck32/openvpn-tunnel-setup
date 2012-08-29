@@ -127,10 +127,6 @@ iptables_AD () {
     # DHCP
     iptables -t mangle "$AD" OUTPUT -p udp --dport 67 \
 	-j MARK --set-mark 0x1
-    # XX: ssh, so that tearing down the tunnel will easily work, for
-    # now
-    iptables -t mangle "$AD" OUTPUT -p tcp --dport 22 \
-	-j MARK --set-mark 0x1
     # openvpn's own traffic
     iptables -t mangle "$AD" OUTPUT -p udp --dport "$openvpn_port" \
 	-j MARK --set-mark 0x1
