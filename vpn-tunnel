@@ -9,7 +9,7 @@ set -eu
 sshserver=servi
 
 # Options fed to openvpn
-opt_compression='--comp-lzo adaptive'
+openvpn_compression='--comp-lzo adaptive'
 
 # Group names or ids of processes whose traffic should be tunneled
 # through the VPN
@@ -22,13 +22,10 @@ owners=""
 
 # (Static) network configuration for the VPN
 network=192.168.200
-ip_in_client=$network.5
-ip_in_server=$network.1
+ip_client=$network.5
+ip_server=$network.1
 
 dev=tun1
-
-clientlocalip=$(is_if_up eth0 || is_if_up eth3 || is_if_up wlan0 \
-    || is_if_up ppp0 || is_if_up usb0)
 
 # logging options; you may want to put this in /var/log/ instead, I
 # was too lazy to set up log rotate and cleaning up /root/tmp already
@@ -129,15 +126,15 @@ usage () {
 
 openvpn_invocation_client () {
     local keyfile_client="${1-"$keyfile_client"}"
-    echo "openvpn $opt_compression --remote "$fqserver" --dev $dev " \
-	"--ifconfig $(quote "$ip_in_client") $(quote "$ip_in_server") $verb " \
+    echo "openvpn $openvpn_compression --remote "$fqserver" --dev $dev " \
+	"--ifconfig $(quote "$ip_client") $(quote "$ip_server") $verb " \
 	"--secret $(quote "$keyfile_client") $usergroup"
 }
 
 openvpn_invocation_server () {
     local keyfile_server="${1-"$keyfile_server"}"
-    echo "openvpn $opt_compression --float --dev $dev " \
-	"--ifconfig $(quote "$ip_in_server") $(quote "$ip_in_client") $verb " \
+    echo "openvpn $openvpn_compression --float --dev $dev " \
+	"--ifconfig $(quote "$ip_server") $(quote "$ip_client") $verb " \
 	"--secret $(quote "$keyfile_server") $usergroup"
 }
 
@@ -150,7 +147,7 @@ masq_code_() {
 }
 
 masq_code() {
-    masq_code_ "$1" "$ip_in_client"
+    masq_code_ "$1" "$ip_client"
 }
 
 iptables_AD_what_ids () {
@@ -167,7 +164,7 @@ iptables_AD_what_ids () {
 	
 	# make their source ip that of the local end of the VPN:
 	iptables -t nat "$AD" POSTROUTING -m owner --"$what"-owner $owner \
-	    -j SNAT --to-source "$ip_in_client"
+	    -j SNAT --to-source "$ip_client"
 	
 	# NAT DNS so that it won't go to the dns server of the local net,
 	# but one in the remote net:
@@ -219,11 +216,11 @@ start () {
 
     === "setting up routing on the client"
     
-    route add -net $network.0 netmask 255.255.255.0 gw $ip_in_server
+    route add -net "$network.0" netmask 255.255.255.0 gw "$ip_server"
 
     iptables_AD_what_ids -A uid "$allowners"
 
-    ip route add default via "$ip_in_server" table 1
+    ip route add default via "$ip_server" table 1
     ip rule add fwmark 1 lookup 1
     # ! don't forget to add cleanup in stop procedure for things you add here !
     
@@ -234,7 +231,7 @@ start () {
     i=20
     ok=0
     while [ "$i" -gt 0 ]; do
-	if ping -q -w1 "$ip_in_server" > /dev/null; then
+	if ping -q -w1 "$ip_server" > /dev/null; then
 	    ok=1
 	    i=0 #our [only] way to break, right??
 	else
