@@ -1,7 +1,11 @@
-* could use daemonize --stop. But there's more
-  to it for multi-client ability: which tun device to use, for example?
+1 multi-client ability: which tun device to use, etc.
 
-* register which users have been added to iptables and just remove those
+2 register which users have been added to iptables and just remove those
   on 'stop' instead of looking them up anew? That would ease the issue
   with groups changing between start and stop.
 
+3 across a sleep cycle, or host interface going down and up, my Debian
+  installation leads to openvpn entering a loop (by way of interfacing
+  taking down routes I guess)
+  To make matters worse, stop / restart fail bc of no interface up
+	-> could avoid need for clientlocalip on stop if 2 is done
