@@ -225,22 +225,21 @@ start () {
 stop () {
     #set -x
 
+    === "stop openvpn on client"
+    eval "daemonize --stop \\
+        --hash-input $(quote "$(openvpn_invocation_client stable)") \\
+	fakecmd" || true
+
     === "remove iptables routing entries"
 
     iptables_AD -D || true
     ip rule del fwmark 1 lookup 1 || true
 
-    if dfltroute_modded=`ip route list | egrep '^default.*table 1\b'`; then
-	ip route del $dfltroute_modded
-	dfltroute_orig=`echo "$dfltroute_modded" | sed 's/table 1//'`
-	ip route add $dfltroute_orig
+    if dfltroute=`ip route list table 1 | grep ^default`; then
+	ip route del $dfltroute table 1
+	ip route add $dfltroute
     fi
 
-
-    === "stop openvpn on client"
-    eval "daemonize --stop \\
-        --hash-input $(quote "$(openvpn_invocation_client stable)") \\
-	fakecmd" || true
 
     === "stop openvpn on server"
     ssh "$sshserver" 'set -eu
