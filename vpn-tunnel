@@ -217,7 +217,7 @@ start () {
 
     === "setting up routing on the client"
     
-    route add -net $network.0 netmask 255.255.255.0 gw $ip_in_server
+    route add -net "$network.0" netmask 255.255.255.0 gw "$ip_in_server"
 
     iptables_AD_what_ids -A uid "$allowners"
 
