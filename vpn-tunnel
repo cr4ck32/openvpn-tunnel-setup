@@ -131,6 +131,11 @@ iptables_AD () {
     # openvpn's own traffic
     iptables -t mangle "$AD" OUTPUT -p udp --dport "$openvpn_port" \
 	-j MARK --set-mark 0x1
+
+    # for those marked, correct the source IP, as that's $ip_client
+    # now by default
+    iptables -t nat "$AD" POSTROUTING -m mark --mark 1 \
+	-j SNAT --to-source "$clientlocalip"
 }
 
 #ÁXXX don't forget DNS  copy  of resolv.conf.
