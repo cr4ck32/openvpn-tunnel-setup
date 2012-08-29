@@ -21,7 +21,7 @@ DEPENDENCIES:
 
  - on both the client and the server, it requires some tools from my
    "chj-bin" repository to be present and accessible in PATH
-   (ssh_config-ref, daemonize). These could probably quite
+   (ssh_config-ref, daemonize, is_if_up). These could probably quite
    easily be replaced with something else or hard coded constants,
    though.
 
