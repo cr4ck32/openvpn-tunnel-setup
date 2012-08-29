@@ -225,6 +225,9 @@ start () {
 stop () {
     #set -x
 
+    # stop openvpn *before* removing the routing, to avoid window of
+    # loop
+
     === "stop openvpn on client"
     eval "daemonize --stop \\
         --hash-input $(quote "$(openvpn_invocation_client stable)") \\
@@ -235,6 +238,7 @@ stop () {
     iptables_AD -D || true
     ip rule del fwmark 1 lookup 1 || true
 
+    # move original default route back to default table
     if dfltroute=`ip route list table 1 | grep ^default`; then
 	ip route del $dfltroute table 1
 	ip route add $dfltroute
