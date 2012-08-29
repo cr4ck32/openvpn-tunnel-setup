@@ -75,13 +75,6 @@ printdone () {
     echo OK.
 }
 
-init () {
-    === "getting server-side IP of DNS server" '"$serversidednsserver"'
-    serversidednsserver=${serversidednsserver-"$(ssh "$sshserver" \
-	'grep ^nameserver /etc/resolv.conf|awk '\''{print $2}'\''|head -1')"}
-
-}
-
 
 usage () {
     set +x
@@ -142,7 +135,6 @@ iptables_AD () {
 
 start () {
     #set -x
-    init
     
     modprobe tun
     # not sure whether these are needed?:
@@ -224,12 +216,6 @@ start () {
 
 stop () {
     #set -x
-    if ssh "$sshserver" "echo nothing" > /dev/null; then
-	# note: can't write 'init || true' here, as that would disable
-	# the effect of 'set -e' within the init function. Bash is
-	# weird?
-	init
-    fi
 
     === "remove iptables routing entries"
 
