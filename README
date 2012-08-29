@@ -4,6 +4,11 @@ client. It uses preshared keys, and ssh is used to share the keys, get
 the necessary serverside information and set up and tear down the
 openvpn daemon.
 
+NOTE: a version of this script that routes all traffic by default
+through the VPN can be found in the 'master' branch of this Git
+repository.
+
+
 LIMITATIONS:
 
  - only tested on Debian
@@ -79,4 +84,7 @@ BUGS:
     'vpn-tunnel start' invocation (also, if a user is removed from a
     group after start but before stop, then the stop action won't
     remove that user from the iptables entries).
+
+  * There's some issue with ICMP and some TCP (ack) traffic not being
+    routed through the VPN. I'm still searching for a solution.
 
