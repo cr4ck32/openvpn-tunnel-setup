@@ -9,7 +9,7 @@ set -eu
 sshserver=servi
 
 # Options fed to openvpn
-opt_compression='--comp-lzo adaptive'
+openvpn_compression='--comp-lzo adaptive'
 
 # Group names or ids of processes whose traffic should be tunneled
 # through the VPN
@@ -129,14 +129,14 @@ usage () {
 
 openvpn_invocation_client () {
     local keyfile_client="${1-"$keyfile_client"}"
-    echo "openvpn $opt_compression --remote "$fqserver" --dev $dev " \
+    echo "openvpn $openvpn_compression --remote "$fqserver" --dev $dev " \
 	"--ifconfig $(quote "$ip_client") $(quote "$ip_server") $verb " \
 	"--secret $(quote "$keyfile_client") $usergroup"
 }
 
 openvpn_invocation_server () {
     local keyfile_server="${1-"$keyfile_server"}"
-    echo "openvpn $opt_compression --float --dev $dev " \
+    echo "openvpn $openvpn_compression --float --dev $dev " \
 	"--ifconfig $(quote "$ip_server") $(quote "$ip_client") $verb " \
 	"--secret $(quote "$keyfile_server") $usergroup"
 }
