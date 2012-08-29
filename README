@@ -1,8 +1,13 @@
 This is for easy and automatic setup of a VPN using openvpn in the
-case where you've got root ssh access to the server and only have one
-client. It uses preshared keys, and ssh is used to share the keys, get
-the necessary serverside information and set up and tear down the
-openvpn daemon.
+case where you've got root ssh access to the server, and, currently,
+only have one client. It uses preshared keys, and ssh is used to share
+the keys, get the necessary serverside information and set up and tear
+down the openvpn daemon.
+
+NOTE: a previous version of this script did selective routing of
+traffic according to user/group ids; this has now been moved to a
+separate 'selective' Git branch.
+
 
 LIMITATIONS:
 
@@ -39,18 +44,12 @@ On client only:
  * cd /opt/chj
    git clone https://github.com/pflanze/openvpn-tunnel-setup.git
    # add to PATH if you like
- * groupadd vpntunneled
- * for user in $users_you_want_to_be_tunneled
-   do adduser $user vpntunneled; done
-   # NOTE: I think you shouldn't include root in the list of users, as
-   # the dhcp daemon would be tunneled as well, which would break the
-   # host network.
  * vpn-tunnel start  # or stop or restart
 
 The tunnel doesn't usually need to be restarted, even across periods
 of the client being offline.
 
-BUGS:
+BUGS: -- obsolete?
 
   * Relatively often, I'm getting sudden periods where the UDP packets
     from openvpn aren't reaching the server, as can be confirmed by
@@ -67,16 +66,4 @@ BUGS:
 
   * Tunnel setup/teardown is a bit slow because of the many remote ssh
     calls.
-
-  * DNS requests are always redirected to the same single DNS server
-    (the first one configured in /etc/resolv.conf on the server); if it
-    goes down, the retries that applications do with different servers
-    will go to the same dead server.
-
-  * Due to an apparent bug in iptables in handling --gid-owner, the
-    script looks up groups when starting; for this reason, adding
-    users to the vpntunneled group only has effect on the next
-    'vpn-tunnel start' invocation (also, if a user is removed from a
-    group after start but before stop, then the stop action won't
-    remove that user from the iptables entries).
 
