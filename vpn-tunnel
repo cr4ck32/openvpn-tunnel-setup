@@ -161,12 +161,6 @@ start () {
 
     scp -p "$keyfile_client" root@"$sshserver":"$keyfile_server"
     
-    === "starting local openvpn instance" -
-    # (amazingly, set -e is in effect within the eval)
-    eval "daemonize --out $(quote "$logfile") --bg --no-nice \\
-        --hash-input $(quote "$(openvpn_invocation_client stable)") \\
-        $(openvpn_invocation_client)"
-
     === "starting remote openvpn instance" -
     ssh "$sshserver" 'set -eu
         modprobe tun
@@ -179,14 +173,19 @@ start () {
 	'"$(masq_code -A)"'
 	'
 
-    === "setting up routing on the client"
-    # ! don't forget to add cleanup in stop procedure for things you add here !
+    === "starting local openvpn instance" -
+    # (amazingly, set -e is in effect within the eval)
+    eval "daemonize --out $(quote "$logfile") --bg --no-nice \\
+        --hash-input $(quote "$(openvpn_invocation_client stable)") \\
+        $(openvpn_invocation_client)"
 
-    # remove previous default route and replace it with a default
-    # route through the VPN
+    === "setting up routing on the client"
+    # ! don't forgret to add cleanup in stop procedure for things you add here !
+
+    # remove previous default route (and further down replace it with
+    # a default route through the VPN)
     dfltroute=`ip route list | grep ^default`
     ip route del $dfltroute
-    ip route add default via "$ip_server"
 
     # but re-add previous default route for the exceptional traffic
     # marked by iptables_AD
@@ -194,6 +193,10 @@ start () {
     ip rule add fwmark 1 lookup 1
 
     iptables_AD -A
+
+    # now that the exceptions are activated, add new default route via
+    # VPN
+    ip route add default via "$ip_server"
     
     === "wait until started"
 
