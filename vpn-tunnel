@@ -27,9 +27,6 @@ ip_server=$network.1
 
 dev=tun1
 
-clientlocalip=$(is_if_up eth0 || is_if_up eth3 || is_if_up wlan0 \
-    || is_if_up ppp0 || is_if_up usb0)
-
 # logging options; you may want to put this in /var/log/ instead, I
 # was too lazy to set up log rotate and cleaning up /root/tmp already
 # regularly
