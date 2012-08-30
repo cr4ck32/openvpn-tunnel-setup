@@ -99,12 +99,15 @@ printdone () {
 
 usage () {
     set +x
-    echo "usage: $0 start|stop|restart|startrouting|stoprouting"
-    echo "   stoprouting doesn't stop openvpn on either server or client,"
+    echo "usage: $0 start|stop|restart|startrouting|stoprouting|status"
+    echo " stoprouting doesn't stop openvpn on either server or client,"
     echo "   it just stops the routing of traffic through the VPN. It"
     echo "   should be called when the client goes to sleep or when the"
     echo "   host interface goes down. startrouting will then (try to)"
     echo "   resume the routing over the running openvpn instances."
+    echo " status shows whether the tunnel seems to be activated;"
+    echo "   it doesn't test the connection though, but just checks"
+    echo "   whether the current resolv.conf is ours."
     exit 1
 }
 
@@ -150,15 +153,18 @@ do_resolv_ours () {
     ln -s "$ours" /etc/resolv.conf
 }
 
+resolv_is_ours () {
+    local ours=${1-"$(resolv_conf_ours)"}
+    if to=$(readlink /etc/resolv.conf); then
+	[ "$to" == "$ours" ]
+    else
+	false
+    fi
+}
+
 resolv_ours () {
     local ours=$(resolv_conf_ours)
-    if to=$(readlink /etc/resolv.conf); then
-	if [ "$to" == "$ours" ]; then
-	    true
-	else
-	    do_resolv_ours "$ours"
-	fi
-    else
+    if ! resolv_is_ours "$ours"; then
 	do_resolv_ours "$ours"
     fi
 }
@@ -395,6 +401,12 @@ case "$1" in
       stop || true
       start
       ===.;;
+    status)
+      if resolv_is_ours; then
+	  echo "on"
+      else
+	  echo "off"
+      fi;;
     *)
       usage;;
 esac
