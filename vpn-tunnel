@@ -390,6 +390,26 @@ stop () {
 if [ $# -ne 1 ]; then
     usage
 fi
+
+
+_startrouting () {
+    if resolv_is_ours; then
+	echo "seems to already be on" >&2
+	false
+    else
+	startrouting
+    fi
+}
+
+_stoprouting () {
+    if resolv_is_ours; then
+	stoprouting
+    else
+	echo "seems to already be off" >&2
+	false
+    fi
+}
+
 	
 case "$1" in
     start)
@@ -399,15 +419,10 @@ case "$1" in
       stop
       ===.;;
     startrouting)
-      if resolv_is_ours; then
-	  echo "seems to already be on" >&2
-	  false
-      else
-	  startrouting
-      fi
+      _startrouting
       ===.;;
     stoprouting)
-      stoprouting
+      _stoprouting
       ===.;;
     restart_if_running)
       # always ok?
@@ -419,8 +434,8 @@ case "$1" in
       start
       ===.;;
     restartrouting)
-      stoprouting || true
-      startrouting
+      _stoprouting || true
+      _startrouting
       ===.;;
     status)
       if resolv_is_ours; then
