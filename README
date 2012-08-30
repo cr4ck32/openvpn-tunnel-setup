@@ -46,12 +46,33 @@ On client only:
    # add to PATH if you like
  * vpn-tunnel start  # or stop or restart
 
-The tunnel doesn't usually need to be restarted, even across periods
-of the client being offline.
+When the host interface (the interface where the encrypted traffic is
+passing through) goes down, this needs to be issued:
 
-BUGS: -- obsolete?
+ * vpn-tunnel stoprouting
 
-  * Relatively often, I'm getting sudden periods where the UDP packets
+and when the interface comes back up,
+
+ * vpn-tunnel startrouting
+
+Failing to issue the "stoprouting" (or "stop") command will lead to
+the openvpn process on the client entering an endless recursion,
+because when the host interface goes down it takes the route used by
+openvpn with it and afterwards openvpn's own traffic will take the
+route through the VPN, hence leading to more encapsulation of the
+always same packet.
+
+"stoprouting" and "startrouting" don't access the network, hence are
+fast and "stoprouting" can be run when offline. "stop" and "start"
+include stoprouting and startrouting calls. Unless there are
+configuration changes or the client or server are rebooted, there's no
+need to issue "stop"/"start"/"restart".
+
+
+BUGS:
+
+  * (is this obsolete now that also meta traffic is going through the VPN?)
+    Relatively often, I'm getting sudden periods where the UDP packets
     from openvpn aren't reaching the server, as can be confirmed by
     running tcpdump on the server. This then sorts itself out all by
     itself after 10-15 minutes or after the client going to sleep some
@@ -64,6 +85,7 @@ BUGS: -- obsolete?
     would hint that it's the ISP, but maybe they are killed by the
     kernel after tcpdump sees them?
 
-  * Tunnel setup/teardown is a bit slow because of the many remote ssh
-    calls.
+  * stop and start are a bit slow because of the several remote ssh
+    calls. Using stoprouting and startrouting as much as possible is a
+    fast workaround, though.
 
