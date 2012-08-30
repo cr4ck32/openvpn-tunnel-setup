@@ -156,7 +156,7 @@ do_resolv_ours () {
 resolv_is_ours () {
     local ours=${1-"$(resolv_conf_ours)"}
     if to=$(readlink /etc/resolv.conf); then
-	[ "$to" == "$ours" ]
+	[ "$to" = "$ours" ]
     else
 	false
     fi
@@ -399,11 +399,11 @@ case "$1" in
       stop
       ===.;;
     startrouting)
-      if [ "$(resolv_is_ours)" == "off" ]; then
-	  startrouting
-      else
+      if resolv_is_ours; then
 	  echo "seems to already be on" >&2
 	  false
+      else
+	  startrouting
       fi
       ===.;;
     stoprouting)
