@@ -385,7 +385,12 @@ case "$1" in
       stop
       ===.;;
     startrouting)
-      startrouting
+      if [ "$(resolv_is_ours)" == "off" ]; then
+	  startrouting
+      else
+	  echo "seems to already be on" >&2
+	  false
+      fi
       ===.;;
     stoprouting)
       stoprouting
