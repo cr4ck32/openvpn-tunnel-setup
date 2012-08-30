@@ -99,7 +99,12 @@ printdone () {
 
 usage () {
     set +x
-    echo "usage: $0 start|stop|restart"
+    echo "usage: $0 start|stop|restart|startrouting|stoprouting"
+    echo "   stoprouting doesn't stop openvpn on either server or client,"
+    echo "   it just stops the routing of traffic through the VPN. It"
+    echo "   should be called when the client goes to sleep or when the"
+    echo "   host interface goes down. startrouting will then (try to)"
+    echo "   resume the routing over the running openvpn instances."
     exit 1
 }
 
@@ -125,6 +130,44 @@ openvpn_invocation_server () {
 # an ID we're using to identify our resources (vpn-tunnel instance)
 client_hash () {
     openvpn_invocation_client stable | sha1sum | awk '{print $1}'
+}
+
+# handling resolv.conf:
+# the original is kept at
+resolv_conf_orig () {
+    echo /etc/resolv.conf.vpn-tunnel_orig_"$(client_hash)"
+}
+# and /etc/resolv.conf is replaced with a symlink to
+resolv_conf_ours () {
+    echo /etc/resolv.conf.vpn-tunnel_ours_"$(client_hash)"
+}
+# and the symlink is checked to avoid moving our own setting to
+# resolv_conf_orig in cases of double starts.
+
+do_resolv_ours () {
+    local ours="$1"
+    mv /etc/resolv.conf "$(resolv_conf_orig)"
+    ln -s "$ours" /etc/resolv.conf
+}
+
+resolv_ours () {
+    local ours=$(resolv_conf_ours)
+    if to=$(readlink /etc/resolv.conf); then
+	if [ "$to" == "$ours" ]; then
+	    true
+	else
+	    do_resolv_ours "$ours"
+	fi
+    else
+	do_resolv_ours "$ours"
+    fi
+}
+
+resolv_orig () {
+    local orig=$(resolv_conf_orig)
+    # only if it exists? well, should always exist when this is
+    # called, and/else the caller will accept that this fails
+    mv "$orig" /etc/resolv.conf
 }
 
 
@@ -156,6 +199,48 @@ iptables_AD () {
     # now by default
     iptables -t nat "$AD" POSTROUTING -m mark --mark 1 \
 	-j SNAT --to-source "$clientlocalip"
+}
+
+
+startrouting () {
+    === "setting up routing on the client"
+    # ! don't forgret to add cleanup in stop procedure for things you add here !
+
+    local clientlocalip=$(get_clientlocalip)
+    echo "$clientlocalip" > "$(client_varbase)"/clientlocalip
+
+    # remove previous default route (and further down replace it with
+    # a default route through the VPN)
+    dfltroute=`ip route list | grep ^default`
+    ip route del $dfltroute
+
+    # but re-add previous default route for the exceptional traffic
+    # marked by iptables_AD
+    ip route add $dfltroute table 1
+    ip rule add fwmark 1 lookup 1
+
+    iptables_AD -A "$clientlocalip"
+
+    # now that the exceptions are activated, add new default route via
+    # VPN; have to retry until openvpn actually created the interface
+    result=`tempfile`
+    i=10
+    ok=0
+    while [ "$i" -gt 0 ]; do
+	if ip route add default via "$ip_server" > "$result" 2>&1; then
+	    ok=1
+	    i=0
+	else
+	    sleep 1
+	    i=$(( $i - 1 ))
+	fi
+    done
+    if [ "$ok" -eq 0 ]; then
+	cat "$result"
+	false
+    fi
+
+    resolv_ours
 }
 
 
@@ -197,42 +282,8 @@ start () {
         --hash-input $(quote "$(openvpn_invocation_client stable)") \\
         $(openvpn_invocation_client)"
 
-    === "setting up routing on the client"
-    # ! don't forgret to add cleanup in stop procedure for things you add here !
 
-    local clientlocalip=$(get_clientlocalip)
-    echo "$clientlocalip" > "$(client_varbase)"/clientlocalip
-
-    # remove previous default route (and further down replace it with
-    # a default route through the VPN)
-    dfltroute=`ip route list | grep ^default`
-    ip route del $dfltroute
-
-    # but re-add previous default route for the exceptional traffic
-    # marked by iptables_AD
-    ip route add $dfltroute table 1
-    ip rule add fwmark 1 lookup 1
-
-    iptables_AD -A "$clientlocalip"
-
-    # now that the exceptions are activated, add new default route via
-    # VPN; have to retry until openvpn actually created the interface
-    result=`tempfile`
-    i=10
-    ok=0
-    while [ "$i" -gt 0 ]; do
-	if ip route add default via "$ip_server" > "$result" 2>&1; then
-	    ok=1
-	    i=0
-	else
-	    sleep 1
-	    i=$(( $i - 1 ))
-	fi
-    done
-    if [ "$ok" -eq 0 ]; then
-	cat "$result"
-	false
-    fi
+    startrouting
     
     === "wait until started"
 
@@ -259,26 +310,16 @@ start () {
     ssh "$sshserver" "rm -f \"$keyfile_server\""
     
     === "copy over /etc/resolv.conf"
+    # this just updates the file that's already there from previous
+    # invocations
     tmp=`tempfile -d /etc/`
     ssh "$sshserver" 'cat /etc/resolv.conf' > "$tmp"
     chmod a+r "$tmp"
-    mv /etc/resolv.conf /etc/resolv.conf.vpn-tunnel_$(client_hash)
-    mv "$tmp" /etc/resolv.conf
-
-    ===.
+    mv "$tmp" "$(resolv_conf_ours)"
 }
 
-stop () {
-    #set -x
 
-    # stop openvpn *before* removing the routing, to avoid window of
-    # loop
-
-    === "stop openvpn on client"
-    eval "daemonize --stop \\
-        --hash-input $(quote "$(openvpn_invocation_client stable)") \\
-	fakecmd" || true
-
+stoprouting () {
     === "remove iptables routing entries"
 
     local clientlocalip=$(cat "$(client_varbase)"/clientlocalip)
@@ -293,8 +334,23 @@ stop () {
     fi
 
     === "restore /etc/resolv.conf"
-    mv /etc/resolv.conf.vpn-tunnel_$(client_hash) /etc/resolv.conf || true
+    resolv_orig || true
+}
 
+stop () {
+    #set -x
+
+    # stop openvpn *before* removing the routing, to avoid window of
+    # loop
+
+    === "stop openvpn on client"
+    eval "daemonize --stop \\
+        --hash-input $(quote "$(openvpn_invocation_client stable)") \\
+	fakecmd" || true
+
+
+    stoprouting
+    
     === "stop openvpn on server"
     ssh "$sshserver" 'set -eu
         '"daemonize --stop \\
@@ -303,7 +359,6 @@ stop () {
     	'"$(masq_code -D)"' || true
 	' || true
 
-    ===.
 }
 
 
@@ -313,16 +368,26 @@ fi
 	
 case "$1" in
     start)
-      start;;
+      start
+      ===.;;
     stop)
-      stop;;
+      stop
+      ===.;;
+    startrouting)
+      startrouting
+      ===.;;
+    stoprouting)
+      stoprouting
+      ===.;;
     restart_if_running)
       # always ok?
       stop
-      start;;
+      start
+      ===.;;
     restart)
       stop || true
-      start;;
+      start
+      ===.;;
     *)
       usage;;
 esac
