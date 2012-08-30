@@ -99,7 +99,7 @@ printdone () {
 
 usage () {
     set +x
-    echo "usage: $0 start|stop|restart|startrouting|stoprouting|status"
+    echo "usage: $0 start|stop|restart|startrouting|stoprouting|restartrouting|status"
     echo " stoprouting doesn't stop openvpn on either server or client,"
     echo "   it just stops the routing of traffic through the VPN. It"
     echo "   should be called when the client goes to sleep or when the"
@@ -417,6 +417,10 @@ case "$1" in
     restart)
       stop || true
       start
+      ===.;;
+    restartrouting)
+      stoprouting || true
+      startrouting
       ===.;;
     status)
       if resolv_is_ours; then

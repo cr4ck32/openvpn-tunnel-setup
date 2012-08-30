@@ -44,7 +44,7 @@ On client only:
  * cd /opt/chj
    git clone https://github.com/pflanze/openvpn-tunnel-setup.git
    # add to PATH if you like
- * vpn-tunnel start  # or stop|restart|startrouting|stoprouting|status
+ * vpn-tunnel start  # or stop|restart|startrouting|stoprouting|restartrouting|status
 
 When the host interface (the interface where the encrypted traffic is
 passing through) goes down, this needs to be issued:
