@@ -19,11 +19,26 @@ ip_server=$network.1
 
 dev=tun1
 
-clientlocalip=$(is_if_up eth0 || is_if_up eth3 || is_if_up wlan0 \
-    || is_if_up ppp0 || is_if_up usb0 || {
+get_clientlocalip () {
+    is_if_up eth0 || is_if_up eth3 || is_if_up wlan0 \
+	|| is_if_up ppp0 || is_if_up usb0 || {
 	echo "no known interface is up" >&2
 	false
-    })
+    }
+}
+
+# var base directory
+client_varbase () {
+    local d="/var/run/vpn-tunnel_$(client_hash)"
+    if [ ! -d "$d" ]; then
+	(
+	    #umask 077 # not really necessary though
+	    mkdir "$d"
+	)
+    fi
+    echo "$d"
+}
+
 
 # logging options; you may want to put this in /var/log/ instead, I
 # was too lazy to set up log rotate and cleaning up /root/tmp already
@@ -129,6 +144,7 @@ masq_code() {
 # VPN:
 iptables_AD () {
     local AD="$1"
+    local clientlocalip="$2"
     # DHCP
     iptables -t mangle "$AD" OUTPUT -p udp --dport 67 \
 	-j MARK --set-mark 0x1
@@ -184,6 +200,9 @@ start () {
     === "setting up routing on the client"
     # ! don't forgret to add cleanup in stop procedure for things you add here !
 
+    local clientlocalip=$(get_clientlocalip)
+    echo "$clientlocalip" > "$(client_varbase)"/clientlocalip
+
     # remove previous default route (and further down replace it with
     # a default route through the VPN)
     dfltroute=`ip route list | grep ^default`
@@ -194,7 +213,7 @@ start () {
     ip route add $dfltroute table 1
     ip rule add fwmark 1 lookup 1
 
-    iptables_AD -A
+    iptables_AD -A "$clientlocalip"
 
     # now that the exceptions are activated, add new default route via
     # VPN; have to retry until openvpn actually created the interface
@@ -262,7 +281,9 @@ stop () {
 
     === "remove iptables routing entries"
 
-    iptables_AD -D || true
+    local clientlocalip=$(cat "$(client_varbase)"/clientlocalip)
+
+    iptables_AD -D "$clientlocalip" || true
     ip rule del fwmark 1 lookup 1 || true
 
     # move original default route back to default table

@@ -7,5 +7,3 @@
 3 across a sleep cycle, or host interface going down and up, my Debian
   installation leads to openvpn entering a loop (by way of interfacing
   taking down routes I guess)
-  To make matters worse, stop / restart fail bc of no interface up
-	-> could avoid need for clientlocalip on stop if 2 is done
