@@ -243,7 +243,7 @@ start () {
     tmp=`tempfile -d /etc/`
     ssh "$sshserver" 'cat /etc/resolv.conf' > "$tmp"
     chmod a+r "$tmp"
-    mv /etc/resolv.conf /etc/resolv.conf.$(client_hash)
+    mv /etc/resolv.conf /etc/resolv.conf.vpn-tunnel_$(client_hash)
     mv "$tmp" /etc/resolv.conf
 
     ===.
@@ -272,7 +272,7 @@ stop () {
     fi
 
     === "restore /etc/resolv.conf"
-    mv /etc/resolv.conf.$(client_hash) /etc/resolv.conf || true
+    mv /etc/resolv.conf.vpn-tunnel_$(client_hash) /etc/resolv.conf || true
 
     === "stop openvpn on server"
     ssh "$sshserver" 'set -eu
