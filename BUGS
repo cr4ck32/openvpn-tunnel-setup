@@ -1,0 +1,26 @@
+
+* (is this obsolete now that also meta traffic is going through the VPN?)
+  Relatively often, I'm getting sudden periods where the UDP packets
+  from openvpn aren't reaching the server, as can be confirmed by
+  running tcpdump on the server. This then sorts itself out all by
+  itself after 10-15 minutes or after the client going to sleep some
+  time. It seems to usually happen soon after restarting the tunnel,
+  thereafter the tunnel seems to be more stable; or maybe it's after
+  periods of heavy traffic. I haven't figured out yet whether this
+  is simply my ISP dropping them during these periods or whether
+  there is something else going on. Tcpdump reports the packets as
+  leaving the client through the interface towards the ISP, so that
+  would hint that it's the ISP, but maybe they are killed by the
+  kernel after tcpdump sees them?
+
+* stop and start are a bit slow because of the several remote ssh
+  calls. Using stoprouting and startrouting as much as possible is a
+  fast workaround, though.
+
+* network manager happily overwrites our /etc/resolv.conf.vpn-tunnel_ours_*
+  through the /etc/resolv.conf symlink if status is on while network
+  manager does some action. (Maybe it's even the dhcp daemon?)
+  Sigh.
+  This also means that 'vpn-tunnel status' is somewhat dubious.
+  (It'll still be correct in that it will reflect the status of the
+  last upping or downing action.)

@@ -68,24 +68,3 @@ include stoprouting and startrouting calls. Unless there are
 configuration changes or the client or server are rebooted, there's no
 need to issue "stop"/"start"/"restart".
 
-
-BUGS:
-
-  * (is this obsolete now that also meta traffic is going through the VPN?)
-    Relatively often, I'm getting sudden periods where the UDP packets
-    from openvpn aren't reaching the server, as can be confirmed by
-    running tcpdump on the server. This then sorts itself out all by
-    itself after 10-15 minutes or after the client going to sleep some
-    time. It seems to usually happen soon after restarting the tunnel,
-    thereafter the tunnel seems to be more stable; or maybe it's after
-    periods of heavy traffic. I haven't figured out yet whether this
-    is simply my ISP dropping them during these periods or whether
-    there is something else going on. Tcpdump reports the packets as
-    leaving the client through the interface towards the ISP, so that
-    would hint that it's the ISP, but maybe they are killed by the
-    kernel after tcpdump sees them?
-
-  * stop and start are a bit slow because of the several remote ssh
-    calls. Using stoprouting and startrouting as much as possible is a
-    fast workaround, though.
-
