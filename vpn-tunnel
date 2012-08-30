@@ -162,18 +162,30 @@ resolv_is_ours () {
     fi
 }
 
-resolv_ours () {
-    local ours=$(resolv_conf_ours)
-    if ! resolv_is_ours "$ours"; then
-	do_resolv_ours "$ours"
-    fi
-}
-
 resolv_orig () {
     local orig=$(resolv_conf_orig)
     # only if it exists? well, should always exist when this is
     # called, and/else the caller will accept that this fails
     mv "$orig" /etc/resolv.conf
+}
+
+copy_resolv_conf () {
+    local saved="$(resolv_conf_ours)".saved
+    # only if it exists (which won't be the case in the first 'start')
+    if [ -f "$saved" ]; then
+	local tmp=`tempfile -d /etc/`
+	cat "$saved" > "$tmp"
+	chmod a+r "$tmp"
+	mv "$tmp" "$(resolv_conf_ours)"
+    fi
+}
+
+resolv_ours () {
+    local ours=$(resolv_conf_ours)
+    if ! resolv_is_ours "$ours"; then
+	do_resolv_ours "$ours"
+    fi
+    copy_resolv_conf
 }
 
 
@@ -343,8 +355,10 @@ start () {
     # invocations
     tmp=`tempfile -d /etc/`
     ssh "$sshserver" 'cat /etc/resolv.conf' > "$tmp"
-    chmod a+r "$tmp"
-    mv "$tmp" "$(resolv_conf_ours)"
+    # keep this in a file that *won't* be directly linked,
+    # so that 'startrouting' can re-copy these contents
+    mv "$tmp" "$(resolv_conf_ours)".saved
+    copy_resolv_conf
 }
 
 

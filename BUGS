@@ -17,10 +17,3 @@
   calls. Using stoprouting and startrouting as much as possible is a
   fast workaround, though.
 
-* network manager happily overwrites our /etc/resolv.conf.vpn-tunnel_ours_*
-  through the /etc/resolv.conf symlink if status is on while network
-  manager does some action. (Maybe it's even the dhcp daemon?)
-  Sigh.
-  This also means that 'vpn-tunnel status' is somewhat dubious.
-  (It'll still be correct in that it will reflect the status of the
-  last upping or downing action.)
