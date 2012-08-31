@@ -10,7 +10,8 @@ sshserver=servi
 
 # Options fed to openvpn
 openvpn_compression='--comp-lzo adaptive'
-openvpn_port=1194
+
+server_port=1194
 
 # (Static) network configuration for the VPN
 network=192.168.200
@@ -210,7 +211,7 @@ iptables_AD () {
     iptables -t mangle "$AD" OUTPUT -p udp --dport 67 \
 	-j MARK --set-mark 0x1
     # openvpn's own traffic
-    iptables -t mangle "$AD" OUTPUT -p udp --dport "$openvpn_port" \
+    iptables -t mangle "$AD" OUTPUT -p udp --dport "$server_port" \
 	-j MARK --set-mark 0x1
 
     # for those marked, correct the source IP, as that's $ip_client
