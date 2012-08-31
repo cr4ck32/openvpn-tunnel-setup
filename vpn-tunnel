@@ -4,57 +4,82 @@ set -eu
 
 # *** Configuration ***
 
+# read an optional config overriding the defaults
+configpath=/etc/chj/vpn-tunnel.sh
+if [ -f "$configpath" ]; then
+    source "$configpath"
+fi
+
+# set defaults:
+
 # sshserver is a hostname, either fully qualified or a hostname
 # definition in the ssh client configuration
-sshserver=servi
+sshserver=${sshserver-servi}
 
 # Options fed to openvpn
-openvpn_compression='--comp-lzo adaptive'
+openvpn_compression=${openvpn_compression-'--comp-lzo adaptive'}
 
-server_port=1194
+server_port=${server_port-1194}
 
 # (Static) network configuration for the VPN
-network=192.168.200
-ip_client=$network.5
-ip_server=$network.1
+network=${network-192.168.200}
+ip_client=${ip_client-$network.5}
+ip_server=${ip_server-$network.1}
 
-dev=tun1
+dev=${dev-tun1}
 
-get_clientlocalip () {
-    is_if_up eth0 || is_if_up eth3 || is_if_up wlan0 \
-	|| is_if_up ppp0 || is_if_up usb0 || {
-	echo "no known interface is up" >&2
-	false
+if ! type get_clientlocalip >/dev/null 2>&1; then
+    get_clientlocalip () {
+	is_if_up eth0 || is_if_up eth3 || is_if_up wlan0 \
+	    || is_if_up ppp0 || is_if_up usb0 || {
+	    echo "no known interface is up" >&2
+	    false
+	}
     }
+fi
+
+# the client_id is used to differentiate multiple clients for the same
+# server (which still need some other work to be done to work,
+# though), and different clients / client configurations on the same
+# client host. By default, it is a hash calculated from the inputs fed
+# to the openvpn instance.
+client_id () {
+    client_id=${client_id-"_$(client_hash)"}
+    echo "$client_id"
 }
 
 # var base directory
 client_varbase () {
-    local d="/var/run/vpn-tunnel_$(client_hash)"
-    if [ ! -d "$d" ]; then
-	(
-	    #umask 077 # not really necessary though
-	    mkdir "$d"
-	)
-    fi
-    echo "$d"
+    client_varbase=${client_varbase-"$(
+	local d="/var/run/vpn-tunnel$(client_id)"
+	if [ ! -d "$d" ]; then
+	    (
+		umask 077 # not really necessary though
+		mkdir "$d"
+	    )
+	fi
+	echo "$d"
+    )"}
+    echo "$client_varbase"
 }
-
 
 # logging options; you may want to put this in /var/log/ instead, I
 # was too lazy to set up log rotate and cleaning up /root/tmp already
 # regularly
-logfile=/root/tmp/vpn-tunnel.log
-verb="--verb 1"
+logfile () {
+    logfile=${logfile-"/var/log/vpn-tunnel$(client_id).log"}
+    echo "$logfile"
+}
+verb=${verb-"--verb 1"}
 
 # user/group to run openvpn as; also use --chroot option to an
 # existing directory
-usergroup="--user chrisopenvpn --group chrisopenvpn \
-    --chroot /usr/share/doc/openvpn/examples/sample-config-files/"
+usergroupchroot=${usergroupchroot-"--user chrisopenvpn --group chrisopenvpn \
+    --chroot /usr/share/doc/openvpn/examples/sample-config-files/"}
 
 # in an attempt to reduce the risk for the key landing on disk, use a
 # tmpfs
-tempfilecmd="tempfile -d /lib/init/rw/"
+tempfilecmd=${tempfilecmd-"tempfile -d /lib/init/rw/"}
 
 # End of configuration.
 
@@ -121,14 +146,14 @@ openvpn_invocation_client () {
     local keyfile_client="${1-"$keyfile_client"}"
     echo "openvpn $openvpn_compression --remote "$fqserver" --dev $dev " \
 	"--ifconfig $(quote "$ip_client") $(quote "$ip_server") $verb " \
-	"--secret $(quote "$keyfile_client") $usergroup"
+	"--secret $(quote "$keyfile_client") $usergroupchroot"
 }
 
 openvpn_invocation_server () {
     local keyfile_server="${1-"$keyfile_server"}"
     echo "openvpn $openvpn_compression --float --dev $dev " \
 	"--ifconfig $(quote "$ip_server") $(quote "$ip_client") $verb " \
-	"--secret $(quote "$keyfile_server") $usergroup"
+	"--secret $(quote "$keyfile_server") $usergroupchroot"
 }
 
 # an ID we're using to identify our resources (vpn-tunnel instance)
@@ -139,11 +164,11 @@ client_hash () {
 # handling resolv.conf:
 # the original is kept at
 resolv_conf_orig () {
-    echo /etc/resolv.conf.vpn-tunnel_orig_"$(client_hash)"
+    echo /etc/resolv.conf.vpn-tunnel_orig"$(client_id)"
 }
 # and /etc/resolv.conf is replaced with a symlink to
 resolv_conf_ours () {
-    echo /etc/resolv.conf.vpn-tunnel_ours_"$(client_hash)"
+    echo /etc/resolv.conf.vpn-tunnel_ours"$(client_id)"
 }
 # and the symlink is checked to avoid moving our own setting to
 # resolv_conf_orig in cases of double starts.
@@ -312,7 +337,7 @@ start () {
 	modprobe nf_conntrack_sip
 	modprobe nf_nat_sip
         echo 1 > /proc/sys/net/ipv4/ip_forward
-        '"daemonize --out $(quote "$logfile") --bg --no-nice \\
+        '"daemonize --out $(quote "$(logfile)") --bg --no-nice \\
 	--hash-input $(quote "$(openvpn_invocation_server stable)") \\
 	$(openvpn_invocation_server)"'
 	'"$(masq_code -A)"'
@@ -320,7 +345,7 @@ start () {
 
     === "starting local openvpn instance" -
     # (amazingly, set -e is in effect within the eval)
-    eval "daemonize --out $(quote "$logfile") --bg --no-nice \\
+    eval "daemonize --out $(quote "$(logfile)") --bg --no-nice \\
         --hash-input $(quote "$(openvpn_invocation_client stable)") \\
         $(openvpn_invocation_client)"
 
