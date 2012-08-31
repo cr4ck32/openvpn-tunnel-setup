@@ -282,6 +282,7 @@ startrouting () {
     done
     if [ "$ok" -eq 0 ]; then
 	cat "$result"
+	stoprouting || true
 	false
     fi
 
