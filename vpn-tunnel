@@ -519,7 +519,7 @@ if_daemon_running () {
 	if [ "$be_strict" = yes ]; then
 	    local realstatus=$(daemon_real_local_running_status)
 	    if [ "$realstatus" = running ]; then
-		eval "$then"
+		eval "$code"
 	    else
 		echo "daemon is not really running"
 		false
