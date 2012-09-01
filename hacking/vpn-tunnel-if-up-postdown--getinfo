@@ -6,4 +6,4 @@ for a in "$@"; do
     echo "arg: '$a'";
 done
 printenv
-} >> /opt/chj/openvpn-tunnel-setup/LOG
+} >> /opt/chj/openvpn-tunnel-setup/hacking/LOG
