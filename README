@@ -35,7 +35,10 @@ Install the dependencies on both client and server:
     git clone https://github.com/pflanze/chj-perllib.git perllib
     mkdir -p /usr/local/lib/site_perl/
     ln -s /opt/chj/perllib/Chj/ /usr/local/lib/site_perl/
-    # add /opt/chj/bin to PATH in /root/.bashrc
+    # add /opt/chj/bin to PATH in /root/.bashrc, or create symlinks
+    #   to the used tools to a location in PATH
+    # (ln -s /opt/chj/bin/{ssh_config-ref,is_if_up,daemonize} /usr/local/bin/
+    # might do, I haven't verified this though.)
 
  * apt-get install openvpn
 
@@ -49,28 +52,29 @@ On client only:
 When the host interface (the interface where the encrypted traffic is
 passing through) goes down, this needs to be issued:
 
- * vpn-tunnel stoprouting
+ # vpn-tunnel stoprouting
 
 and when the interface comes back up,
 
- * vpn-tunnel startrouting
+ # vpn-tunnel startrouting
 
-Failing to issue the "stoprouting" (or "stop") command will lead to
-the openvpn process on the client entering an endless recursion,
-because when the host interface goes down it takes the route used by
-openvpn with it and afterwards openvpn's own traffic will take the
-route through the VPN, hence leading to more encapsulation of the
-always same packet.
-
-This can be achieved automatically with:
-
-  # cd /etc/network
-  # ln -s /opt/chj/openvpn-tunnel-setup/vpn-tunnel-if-up-postdown if-up.d/
-  # ln -s /opt/chj/openvpn-tunnel-setup/vpn-tunnel-if-up-postdown if-post-down.d/
+Failing to issue the "stoprouting" (or "stop") command will lead the
+openvpn process on the client to enter an endless recursion, because
+when the host interface goes down it takes the route used by openvpn's
+own encrypted traffic with it and hence that will take the route
+through the VPN, hence leading to ever deeper encapsulation of the
+always same packets, if my analysis is correct.
 
 "stoprouting" and "startrouting" don't access the network, hence are
 fast and "stoprouting" can be run when offline. "stop" and "start"
 include stoprouting and startrouting calls. Unless there are
 configuration changes or the client or server are rebooted, there's no
 need to issue "stop"/"start"/"restart".
+
+The need for stoprouting/startrouting actions can be fulfilled
+automatically with:
+
+  * cd /etc/network
+  * ln -s /opt/chj/openvpn-tunnel-setup/vpn-tunnel-if-up-postdown if-up.d/
+  * ln -s /opt/chj/openvpn-tunnel-setup/vpn-tunnel-if-up-postdown if-post-down.d/
 
