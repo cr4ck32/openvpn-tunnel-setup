@@ -13,9 +13,10 @@ LIMITATIONS:
 
  - only tested on Debian
 
- - it currently probably only works for one client per server:
-   the tunX interface name and IPs used for the VPN are configured
-   statically in the script.
+ - it currently probably only works for one client per server, unless
+   you create a file /etc/chj/vpn-tunnel.sh which sets at least the
+   following variables (UNTESTED): dev ip_client
+
 
 DEPENDENCIES:
 
