@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# to be called from /etc/network/if-{up,post-down}.d
+
+# MODE=stop
+# PHASE=post-down
+
+# MODE=start
+# PHASE=post-up
+# etc.
+
+set -eu
+
+vpn_tunnel=/opt/chj/openvpn-tunnel-setup/vpn-tunnel
+export PATH=/opt/chj/bin/:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export PERL5LIB=/opt/chj/perllib/
+
+case "$MODE" in
+    start)
+    "$vpn_tunnel" startrouting
+    ;;
+    stop)
+    "$vpn_tunnel" stoprouting
+    ;;
+    *)
+    echo "ignoring mode '$MODE'"
+    ;;
+esac

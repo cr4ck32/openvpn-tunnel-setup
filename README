@@ -62,6 +62,12 @@ openvpn with it and afterwards openvpn's own traffic will take the
 route through the VPN, hence leading to more encapsulation of the
 always same packet.
 
+This can be achieved automatically with:
+
+  # cd /etc/network
+  # ln -s /opt/chj/openvpn-tunnel-setup/vpn-tunnel-if-up-postdown if-up.d/
+  # ln -s /opt/chj/openvpn-tunnel-setup/vpn-tunnel-if-up-postdown if-post-down.d/
+
 "stoprouting" and "startrouting" don't access the network, hence are
 fast and "stoprouting" can be run when offline. "stop" and "start"
 include stoprouting and startrouting calls. Unless there are
