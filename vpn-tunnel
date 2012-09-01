@@ -450,11 +450,11 @@ _startrouting () {
 
 _stoprouting () {
     status=$(status)
-    if [ "$status" = on -o "$status" = want_off ]; then
-	stoprouting
-    else
+    if [ "$status" = off ]; then
 	echo "seems to already be off" >&2
 	false
+    else
+	stoprouting
     fi
 }
 
