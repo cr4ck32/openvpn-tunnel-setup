@@ -501,11 +501,32 @@ _restartrouting () {
     startrouting
 }
 
+#is_daemon_really_running () {
+daemon_real_running_status () {
+    # still only checks on the client. (Don't want to use the network here.)
+    eval "daemonize --status \\
+        --hash-input $(quote "$(openvpn_invocation_client stable)") \\
+	fakecmd"
+	# will print 'running' [or 'off']
+}
+
 if_daemon_running () {
+    local be_strict="$1" # yes|no
+    local code="$2"
     local status=$(daemonstatus)
     # no '-o "$status" = want_on' here
     if [ "$status" = on ]; then
-	eval "$1"
+	if [ "$be_strict" = yes ]; then
+	    local realstatus=$(daemon_real_running_status)
+	    if [ "$realstatus" = running ]; then
+		eval "$then"
+	    else
+		echo "daemon is not really running"
+		false
+	    fi
+	else
+	    eval "$code"
+	fi
     else
 	echo "daemon is not running"
 	false
@@ -520,10 +541,10 @@ case "$1" in
       stop
       ===.;;
     startrouting)
-      if_daemon_running _startrouting
+      if_daemon_running yes _startrouting
       ===.;;
     stoprouting)
-      if_daemon_running _stoprouting
+      if_daemon_running no _stoprouting
       ===.;;
     restart*if*running)
       # restart if *daemon* is running
@@ -539,13 +560,23 @@ case "$1" in
       _restart
       ===.;;
     restartrouting)
-      if_daemon_running _restartrouting
+      if_daemon_running yes _restartrouting
       ===.;;
     status)
       ds=$(daemonstatus)
       rs=$(routingstatus)
       if [ "$ds" = "$rs" ]; then
-	  echo "$ds"
+	  if [ "$ds" = on ]; then
+	      realstatus=$(daemon_real_running_status)
+	      if [ "$realstatus" = running ]; then
+		  echo on
+	      else
+		  echo "daemon / routing: $ds"
+		  echo "daemon_real_running_status: $realstatus"
+	      fi
+	  else
+	      echo "$ds"
+	  fi
       else
 	  echo "daemon: $ds"
 	  echo "routing: $rs"
