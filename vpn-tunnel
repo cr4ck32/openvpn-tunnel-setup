@@ -346,8 +346,9 @@ stoprouting () {
     if dfltroute=$(cat "$(client_varbase)"/dfltroute); then
 	# move original default route back to default table
 	ip route del $dfltroute table 1 || true
-	curdfltroute=`ip route list | grep ^default`
-	ip route del $curdfltroute || true
+	if curdfltroute=`ip route list | grep ^default`; then
+	    ip route del $curdfltroute || true
+	fi
 	ip route add $dfltroute || true
     fi
     
