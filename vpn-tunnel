@@ -338,7 +338,7 @@ start () {
 	modprobe nf_conntrack_sip
 	modprobe nf_nat_sip
         echo 1 > /proc/sys/net/ipv4/ip_forward
-        '"daemonize --out $(quote "$(logfile)") --bg --no-nice \\
+        '"daemonize --out $(quote "$(logfile)") --restart --bg --no-nice \\
 	--hash-input $(quote "$(openvpn_invocation_server stable)") \\
 	$(openvpn_invocation_server)"'
 	'"$(masq_code -A)"'
@@ -346,7 +346,7 @@ start () {
 
     === "starting local openvpn instance" -
     # (amazingly, set -e is in effect within the eval)
-    eval "daemonize --out $(quote "$(logfile)") --bg --no-nice \\
+    eval "daemonize --out $(quote "$(logfile)") --restart --bg --no-nice \\
         --hash-input $(quote "$(openvpn_invocation_client stable)") \\
         $(openvpn_invocation_client)"
 
@@ -437,6 +437,11 @@ _stoprouting () {
     fi
 }
 
+_restart () {
+    stoprouting || true
+    start
+}
+
 	
 case "$1" in
     start)
@@ -451,14 +456,16 @@ case "$1" in
     stoprouting)
       _stoprouting
       ===.;;
-    restart_if_running)
-      # always ok?
-      stop
-      start
-      ===.;;
+    restart*if*running)
+      if resolv_is_ours; then
+	  _restart
+	  ===.
+      else
+          echo "not running"
+      fi
+      ;;
     restart)
-      stop || true
-      start
+      _restart
       ===.;;
     restartrouting)
       _stoprouting || true
