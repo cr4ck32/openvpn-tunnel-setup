@@ -7,3 +7,7 @@
 3 across a sleep cycle, or host interface going down and up, my Debian
   installation leads to openvpn entering a loop (by way of interfacing
   taking down routes I guess)
+
+4 status stuff is complex, and already more than necessary: should
+  eliminate 'daemon' variable and instead always take daemonize --status,
+  right?
