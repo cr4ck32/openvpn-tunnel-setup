@@ -465,7 +465,7 @@ _restart () {
 
 _restartrouting () {
     stoprouting # || true
-    start
+    startrouting
 }
 
 	
