@@ -1,0 +1,9 @@
+#!/bin/bash
+
+{
+echo "`date` $0 called"
+for a in "$@"; do
+    echo "arg: '$a'";
+done
+printenv
+} >> /opt/chj/openvpn-tunnel-setup/LOG
