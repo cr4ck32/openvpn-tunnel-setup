@@ -99,3 +99,12 @@ automatically with:
   * ln -s /opt/chj/openvpn-tunnel-setup/vpn-tunnel-if-up-postdown if-up.d/
   * ln -s /opt/chj/openvpn-tunnel-setup/vpn-tunnel-if-up-postdown if-post-down.d/
 
+If you use this and the VPN stops working, then probably the server
+was rebooted, and you need to issue 'vpn-tunnel restart'.
+
+Also, if the client is rebooted, the daemon on the client side is not
+up anymore, and the VPN will not be activated in this case.
+
+(Should it automatically restart the connection in these cases? 
+Probably it should.)
+

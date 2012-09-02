@@ -11,3 +11,9 @@
 4 status stuff is complex, and already more than necessary: should
   eliminate 'daemon' variable and instead always take daemonize --status,
   right?
+
+5 When the daemon variable, which should really be renamed to wantvpn
+  or something, is 'on', restart the connection if either client or
+  server daemon is down. (Check server using ssh, after disabling the
+  vpn? Or, add exception to tunneling for ssh connections to the
+  server?)
