@@ -4,6 +4,15 @@ only have one client. It uses preshared keys, and ssh is used to share
 the keys, get the necessary serverside information and set up and tear
 down the openvpn daemon.
 
+FEATURES:
+
+ - should only need one single setting for configuration, the address
+   (or name as configured in the ssh client configuration) of the
+   server
+ - tunnels everything, including DNS traffic
+ - comes with hooks that when used will activate the tunnel whenever
+   the network comes up
+
 NOTE: a previous version of this script did selective routing of
 traffic according to user/group ids; this has now been moved to a
 separate 'selective' Git branch.
@@ -14,17 +23,20 @@ LIMITATIONS:
  - only tested on Debian
 
  - it currently probably only works for one client per server, unless
-   you create a file /etc/chj/vpn-tunnel.sh which changes at least the
-   following variables (UNTESTED): dev network server_port
+   you also change at least the following settings (UNTESTED): dev
+   network server_port
 
 
 DEPENDENCIES:
 
  - on both the client and the server, it requires some tools from my
    "chj-bin" repository to be present and accessible in PATH
-   (ssh_config-ref, daemonize, is_if_up). These could probably quite
+   (ssh_config-ref, daemonize, is_if_up). These could relatively
    easily be replaced with something else or hard coded constants,
-   though.
+   the biggest difficulty will be to replace the use of the daemonize
+   --restart and --status features with whatever the alternative tool
+   provides.
+
 
 SETUP:
 
@@ -48,7 +60,15 @@ On client only:
  * cd /opt/chj
    git clone https://github.com/pflanze/openvpn-tunnel-setup.git
    # add to PATH if you like
- * vpn-tunnel start  # or stop|restart|startrouting|stoprouting|restartrouting|status
+
+ * create a file /etc/chj/vpn-tunnel.sh which contains a variable assignment
+      sshserver=yourserver.yourdomain.yourtld
+   or
+      sshserver=yourservername
+   if yourservername is defined in /etc/ssh/ssh_config; alternativels, define
+   vpn-tunnel-server in ssh_config.
+
+ * vpn-tunnel start  # or stop|restart|status, or startrouting|stoprouting|restartrouting
 
 When the host interface (the interface where the encrypted traffic is
 passing through) goes down, this needs to be issued:

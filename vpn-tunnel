@@ -14,7 +14,7 @@ fi
 
 # sshserver is a hostname, either fully qualified or a hostname
 # definition in the ssh client configuration
-sshserver=${sshserver-servi}
+sshserver=${sshserver-vpn-tunnel-server}
 
 # Options fed to openvpn
 openvpn_compression=${openvpn_compression-'--comp-lzo adaptive'}
