@@ -11,16 +11,15 @@
 
 set -eu
 
-vpn_tunnel=/opt/chj/openvpn-tunnel-setup/vpn-tunnel
-export PATH=/opt/chj/bin/:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export PATH=/opt/chj/openvpn-tunnel-setup:/opt/chj/bin/:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 export PERL5LIB=/opt/chj/perllib/
 
 case "$MODE" in
     start)
-    "$vpn_tunnel" startrouting
+    vpn-tunnel startrouting
     ;;
     stop)
-    "$vpn_tunnel" stoprouting
+    vpn-tunnel stoprouting
     ;;
     *)
     echo "ignoring mode '$MODE'"
