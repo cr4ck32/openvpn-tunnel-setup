@@ -217,12 +217,18 @@ resolv_ours () {
 # -----
 var () {
     local v="$1"
-    local unset="$2"
+    # optional value to return when v is not set:
+    local maybe_unset="${2-nf6kaw4jys9br5kgq6i}"
+    
     local f="$(client_varbase)"/"$v"
     if [ -e "$f" ]; then
 	cat "$f"
     else
-	echo "$unset"
+        if [ "$maybe_unset" = nf6kaw4jys9br5kgq6i ]; then
+	    false
+	else
+	    echo "$maybe_unset"
+	fi
     fi
 }
 
@@ -291,12 +297,12 @@ startrouting () {
     # ! don't forgret to add cleanup in stop procedure for things you add here !
 
     local clientlocalip=$(get_clientlocalip)
-    echo "$clientlocalip" > "$(client_varbase)"/clientlocalip
+    set_var clientlocalip "$clientlocalip"
 
     # remove previous default route (and further down replace it with
     # a default route through the VPN)
     dfltroute=`ip route list | grep ^default`
-    echo "$dfltroute" > "$(client_varbase)"/dfltroute
+    set_var dfltroute "$dfltroute"
     ip route del $dfltroute
 
     # but re-add previous default route for the exceptional traffic
@@ -335,7 +341,7 @@ stoprouting () {
     set_routingstatus want_off
 
     === "remove iptables routing entries"
-    local clientlocalip=$(cat "$(client_varbase)"/clientlocalip)
+    local clientlocalip=$(var clientlocalip)
 
     iptables_AD -D "$clientlocalip" || true
     ip rule del fwmark 1 lookup 1 || true
@@ -343,7 +349,7 @@ stoprouting () {
     # wow, bash misses the check for the result of cat if I say "if
     # local dfltroute=...". Thus, make it local beforehand:
     local dfltroute;
-    if dfltroute=$(cat "$(client_varbase)"/dfltroute); then
+    if dfltroute=$(var dfltroute); then
 	# move original default route back to default table
 	ip route del $dfltroute table 1 || true
 	if curdfltroute=`ip route list | grep ^default`; then
