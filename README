@@ -14,8 +14,8 @@ LIMITATIONS:
  - only tested on Debian
 
  - it currently probably only works for one client per server, unless
-   you create a file /etc/chj/vpn-tunnel.sh which sets at least the
-   following variables (UNTESTED): dev ip_client
+   you create a file /etc/chj/vpn-tunnel.sh which changes at least the
+   following variables (UNTESTED): dev network server_port
 
 
 DEPENDENCIES:
