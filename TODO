@@ -17,3 +17,7 @@
   server daemon is down. (Check server using ssh, after disabling the
   vpn? Or, add exception to tunneling for ssh connections to the
   server?)
+
+6 document that when changing the configuration, 'stop' has to be
+  issued before saving the new configuration; do that differently? 
+  *search* for running instances?
