@@ -17,7 +17,7 @@ fi
 sshserver=${sshserver-vpn-tunnel-server}
 
 # Options fed to openvpn
-openvpn_compression=${openvpn_compression-'--comp-lzo adaptive'}
+openvpn_options=${openvpn_options-"${openvpn_compression-'--comp-lzo adaptive'}"}
 
 server_port=${server_port-1194}
 
@@ -144,14 +144,14 @@ usage () {
 
 openvpn_invocation_client () {
     local keyfile_client="${1-"$keyfile_client"}"
-    echo "openvpn $openvpn_compression --remote "$fqserver" --dev $dev " \
+    echo "openvpn $openvpn_options --remote "$fqserver" --dev $dev " \
 	"--ifconfig $(quote "$ip_client") $(quote "$ip_server") $verb " \
 	"--secret $(quote "$keyfile_client") $usergroupchroot"
 }
 
 openvpn_invocation_server () {
     local keyfile_server="${1-"$keyfile_server"}"
-    echo "openvpn $openvpn_compression --float --dev $dev " \
+    echo "openvpn $openvpn_options --float --dev $dev " \
 	"--ifconfig $(quote "$ip_server") $(quote "$ip_client") $verb " \
 	"--secret $(quote "$keyfile_server") $usergroupchroot"
 }
