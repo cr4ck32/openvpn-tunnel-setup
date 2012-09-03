@@ -17,7 +17,7 @@ fi
 sshserver=${sshserver-vpn-tunnel-server}
 
 # Options fed to openvpn
-openvpn_options=${openvpn_options-"${openvpn_compression-'--comp-lzo no'}"}
+openvpn_options=${openvpn_options-"${openvpn_compression---comp-lzo no}"}
 
 server_port=${server_port-1194}
 
