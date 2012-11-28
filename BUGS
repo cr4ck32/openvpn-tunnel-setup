@@ -1,6 +1,5 @@
 
-* (is this obsolete now that also meta traffic is going through the VPN?)
-  Relatively often, I'm getting sudden periods where the UDP packets
+* Relatively often, I'm getting sudden periods where the UDP packets
   from openvpn aren't reaching the server, as can be confirmed by
   running tcpdump on the server. This then sorts itself out all by
   itself after 10-15 minutes or after the client going to sleep some
@@ -12,6 +11,11 @@
   leaving the client through the interface towards the ISP, so that
   would hint that it's the ISP, but maybe they are killed by the
   kernel after tcpdump sees them?
+
+  -> it seems increasingly clear to me that this is really my ISP
+  (T-Mobile UK) simply dropping the packets. It seems that they are
+  running a packet pattern analyzer that is looking for tunneled Skype
+  or VoIP traffic and is killing the connection when triggered.
 
 * stop and start are a bit slow because of the several remote ssh
   calls. Using stoprouting and startrouting as much as possible is a
