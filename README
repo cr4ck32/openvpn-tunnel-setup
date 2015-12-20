@@ -65,7 +65,7 @@ On client only:
       sshserver=yourserver.yourdomain.yourtld
    or
       sshserver=yourservername
-   if yourservername is defined in /etc/ssh/ssh_config; alternativels, define
+   if yourservername is defined in /etc/ssh/ssh_config; alternatively, define
    vpn-tunnel-server in ssh_config.
 
  * vpn-tunnel start  # or stop|restart|status, or startrouting|stoprouting|restartrouting
