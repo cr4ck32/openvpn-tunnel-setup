@@ -423,7 +423,7 @@ start () {
 	fi
     done
     if [ "$ok" -eq 0 ]; then
-	echo "could not get ping reply" >&2
+	echo "could not get ping reply. Check $(quote "$(logfile)") for errors." >&2
 	false
     fi
 
