@@ -30,7 +30,7 @@ dev=${dev-tun1}
 
 if ! type get_clientlocalip >/dev/null 2>&1; then
     get_clientlocalip () {
-	is_if_up eth0 || is_if_up eth3 || is_if_up wlan0 \
+	is_if_up eth0 || is_if_up eth3 || is_if_up wlan0 || is_if_up wlan1 \
 	    || is_if_up ppp0 || is_if_up usb0 || {
 	    echo "no known interface is up" >&2
 	    false
