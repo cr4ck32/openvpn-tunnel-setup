@@ -391,7 +391,10 @@ start () {
 	modprobe nf_conntrack_sip
 	modprobe nf_nat_sip
         echo 1 > /proc/sys/net/ipv4/ip_forward
-        '"daemonize --out $(quote "$(logfile)") --restart --bg --no-nice \\
+        '"daemonize --stop \\
+	--hash-input $(quote "$(openvpn_invocation_server stable)") \\
+	fakecmd || true"'
+	'"daemonize --out $(quote "$(logfile)") --restart --bg --no-nice \\
 	--hash-input $(quote "$(openvpn_invocation_server stable)") \\
 	$(openvpn_invocation_server)"'
 	'"$(masq_code -A)"'
